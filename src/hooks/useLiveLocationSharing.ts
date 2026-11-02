@@ -1,8 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { TEST_FALLBACK_POSITION, describeGeolocationError } from '@/lib/geolocation';
+import { TEST_FALLBACK_POSITION, describeGeolocationError, isPositionPrecise } from '@/lib/geolocation';
 
 const HEARTBEAT_MS = 15000;
+const HIGH_ACCURACY_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  timeout: 10000,
+  maximumAge: 0,
+};
 
 interface SharedPosition {
   lat: number;
@@ -59,8 +64,8 @@ export function useLiveLocationSharing(doctorCedula: string, testMode: boolean) 
           return;
         }
         setSharing(true);
-        lastPositionRef.current = TEST_FALLBACK_POSITION;
-        await publish(true, TEST_FALLBACK_POSITION);
+        lastPositionRef.current = { lat: TEST_FALLBACK_POSITION.lat, lng: TEST_FALLBACK_POSITION.lng };
+        await publish(true, lastPositionRef.current);
         return;
       }
       stopWatching();
@@ -68,6 +73,9 @@ export function useLiveLocationSharing(doctorCedula: string, testMode: boolean) 
       await publish(true, null);
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
+          if (!isPositionPrecise(position)) {
+            return;
+          }
           lastPositionRef.current = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
@@ -76,8 +84,8 @@ export function useLiveLocationSharing(doctorCedula: string, testMode: boolean) 
         },
         (err) => {
           if (testMode) {
-            lastPositionRef.current = TEST_FALLBACK_POSITION;
-            publish(true, TEST_FALLBACK_POSITION);
+            lastPositionRef.current = { lat: TEST_FALLBACK_POSITION.lat, lng: TEST_FALLBACK_POSITION.lng };
+            publish(true, lastPositionRef.current);
             return;
           }
           stopWatching();
@@ -86,7 +94,7 @@ export function useLiveLocationSharing(doctorCedula: string, testMode: boolean) 
           setError(describeGeolocationError(err));
           publish(false, null);
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+        HIGH_ACCURACY_OPTIONS,
       );
     },
     [publish, stopWatching, testMode],

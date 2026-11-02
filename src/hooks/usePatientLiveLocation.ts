@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { GeoPosition } from '@/lib/geolocation';
+import { ACCURACY_THRESHOLD_METERS } from '@/lib/geolocation';
 
 export interface PatientLiveLocation {
   lat: number;
@@ -10,6 +11,10 @@ export interface PatientLiveLocation {
 
 const POLL_MS = 10000;
 
+function isPrecise(pos: GeoPosition): boolean {
+  return pos.accuracy <= ACCURACY_THRESHOLD_METERS;
+}
+
 export function usePatientLocationPublishing(
   patientCedula: string,
   doctorCedula: string | undefined,
@@ -18,6 +23,7 @@ export function usePatientLocationPublishing(
 ) {
   useEffect(() => {
     if (!enabled || !position || !doctorCedula) return;
+    if (!isPrecise(position)) return;
     supabase
       .from('patient_live_location')
       .upsert(

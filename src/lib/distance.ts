@@ -12,3 +12,7 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
 export function formatDistance(meters: number): string {
   return meters >= 1000 ? `${(meters / 1000).toFixed(2)} km` : `${Math.round(meters)} m`;
 }
+
+export function isWithinGeofence(distanceMeters: number, radiusMeters: number): boolean {
+  return distanceMeters <= radiusMeters;
+}

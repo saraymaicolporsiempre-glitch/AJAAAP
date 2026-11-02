@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { calculateDistance } from '@/lib/distance';
+import { calculateDistance, isWithinGeofence } from '@/lib/distance';
 import { readPosition } from '@/lib/geolocation';
 
 export type GeoStatus = 'idle' | 'checking' | 'success' | 'too-far' | 'error' | 'simulated';
@@ -25,7 +25,7 @@ export function useGeolocation(sedeLat: number, sedeLng: number, testMode: boole
     return readPosition(testMode).then(
       (position) => {
         const distance = calculateDistance(position.lat, position.lng, sedeLat, sedeLng);
-        const withinRange = distance <= CHECKIN_RADIUS_METERS;
+        const withinRange = isWithinGeofence(distance, CHECKIN_RADIUS_METERS);
         const r: GeoResult = {
           status: withinRange ? 'success' : 'too-far',
           distance: Math.round(distance),
