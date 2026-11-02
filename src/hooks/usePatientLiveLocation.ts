@@ -9,7 +9,7 @@ export interface PatientLiveLocation {
   updatedAt: number;
 }
 
-const POLL_MS = 10000;
+const POLL_MS = 20000;
 
 function isPrecise(pos: GeoPosition): boolean {
   return pos.accuracy <= ACCURACY_THRESHOLD_METERS;

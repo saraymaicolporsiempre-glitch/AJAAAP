@@ -10,7 +10,6 @@ import {
   Users,
   Timer,
   CreditCard,
-  RefreshCw,
   UserX,
   CalendarDays,
   Loader2,
@@ -31,7 +30,6 @@ import { COUNTDOWN_SECONDS } from '@/types';
 import type { User as AppUser, Appointment } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TabStrip } from '@/components/TabStrip';
-import { LiveLocationSwitch } from '@/components/doctor/LiveLocationSwitch';
 import { PatientDistanceNotice } from '@/components/doctor/PatientDistanceNotice';
 
 interface DoctorPanelProps {
@@ -75,7 +73,7 @@ const AFTERNOON_SLOTS = generate30MinSlots('14:00', '17:00');
 const ALL_SLOTS = [...MORNING_SLOTS, ...AFTERNOON_SLOTS];
 
 export function DoctorPanel({ user }: DoctorPanelProps) {
-  const { data, callNext, markPresent, markAbsentAndReschedule, resetAll, getDoctorSchedule, toggleScheduleDay, ensureWeekdaysScheduled, loading, getNotifications, getUnreadNotificationCount, markNotificationsRead } = useApp();
+  const { data, callNext, markPresent, markAbsentAndReschedule, getDoctorSchedule, toggleScheduleDay, ensureWeekdaysScheduled, loading, getNotifications, getUnreadNotificationCount, markNotificationsRead } = useApp();
   const now = useNow(1000);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<'queue' | 'availability' | 'upcoming'>('queue');
@@ -97,12 +95,6 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
   const handleAbsent = async () => {
     setBusy(true);
     await markAbsentAndReschedule();
-    setBusy(false);
-  };
-
-  const handleReset = async () => {
-    setBusy(true);
-    await resetAll();
     setBusy(false);
   };
 
@@ -290,8 +282,6 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
 
       {view === 'queue' && (
         <>
-      <LiveLocationSwitch doctorCedula={user.cedula} />
-
       {/* Metrics */}
       <div className="grid grid-cols-2 gap-3 mb-4 animate-slide-up">
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
@@ -341,7 +331,6 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
           </p>
           <div className="text-left mb-3">
             <PatientDistanceNotice
-              doctorCedula={user.cedula}
               patientCedula={calledPatient.patientCedula}
               sede={data.sede}
             />
@@ -465,16 +454,6 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
         </div>
       )}
 
-      {/* Reset */}
-      <button
-        onClick={handleReset}
-        disabled={busy}
-        className="w-full text-sm text-slate-400 py-2 flex items-center justify-center gap-1.5 hover:text-slate-600
-                       disabled:opacity-50"
-      >
-        <RefreshCw className="w-4 h-4" />
-        Reiniciar con datos de prueba
-      </button>
         </>
       )}
 

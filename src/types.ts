@@ -108,4 +108,4 @@ export interface AppData {
   specialties: Specialty[];
 }
 
-export const COUNTDOWN_SECONDS = 180;
+export const COUNTDOWN_SECONDS = 300;

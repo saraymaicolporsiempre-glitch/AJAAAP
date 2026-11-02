@@ -1,7 +1,6 @@
 import { MapPin, Navigation } from 'lucide-react';
 import type { SedeConfig } from '@/types';
 import { CHECKIN_RADIUS_METERS } from '@/hooks/useGeolocation';
-import { useDoctorLiveLocation } from '@/hooks/useDoctorLiveLocation';
 import { useOwnPosition } from '@/hooks/useOwnPosition';
 import { usePatientLocationPublishing } from '@/hooks/usePatientLiveLocation';
 import { calculateDistance, formatDistance } from '@/lib/distance';
@@ -13,10 +12,8 @@ interface CheckInZoneCardProps {
 }
 
 export function CheckInZoneCard({ sede, patientCedula, doctorCedula }: CheckInZoneCardProps) {
-  const doctorLive = useDoctorLiveLocation(doctorCedula);
-  const sharing = doctorLive !== null;
   const own = useOwnPosition(true, sede.allowSameDayBooking);
-  usePatientLocationPublishing(patientCedula, doctorCedula, sharing, own.position);
+  usePatientLocationPublishing(patientCedula, doctorCedula, true, own.position);
 
   const distance = own.position
     ? calculateDistance(own.position.lat, own.position.lng, sede.lat, sede.lng)
