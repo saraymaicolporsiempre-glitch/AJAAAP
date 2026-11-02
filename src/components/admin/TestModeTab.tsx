@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FlaskConical } from 'lucide-react';
 
 interface TestModeTabProps {
@@ -18,12 +18,22 @@ interface TestSwitchProps {
 }
 
 function TestSwitch({ title, description, statusOn, statusOff, enabled, onToggle }: TestSwitchProps) {
+  const [optimistic, setOptimistic] = useState(enabled);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    setOptimistic(enabled);
+  }, [enabled]);
+
   const handleClick = async () => {
+    if (busy) return;
+    const next = !optimistic;
+    setOptimistic(next);
     setBusy(true);
     try {
-      await onToggle(!enabled);
+      await onToggle(next);
+    } catch {
+      setOptimistic(!next);
     } finally {
       setBusy(false);
     }
@@ -38,21 +48,21 @@ function TestSwitch({ title, description, statusOn, statusOff, enabled, onToggle
         </div>
         <button
           role="switch"
-          aria-checked={enabled}
+          aria-checked={optimistic}
           onClick={handleClick}
           disabled={busy}
           className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
-            enabled ? 'bg-emerald-500' : 'bg-slate-300'
+            optimistic ? 'bg-emerald-500' : 'bg-slate-300'
           }`}
         >
           <span
             className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-              enabled ? 'translate-x-6' : 'translate-x-1'
+              optimistic ? 'translate-x-6' : 'translate-x-1'
             }`}
           />
         </button>
       </div>
-      <p className="text-xs text-slate-400">{enabled ? statusOn : statusOff}</p>
+      <p className="text-xs text-slate-400">{optimistic ? statusOn : statusOff}</p>
     </div>
   );
 }
