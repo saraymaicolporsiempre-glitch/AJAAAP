@@ -227,19 +227,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentUserRef = useRef<User | null>(null);
+  currentUserRef.current = currentUser;
 
-  // Load all data from Supabase
+  // Load all data from Supabase, filtered by doctor when the logged-in user is a doctor
   const loadData = async () => {
+    const activeUser = currentUserRef.current;
+    const isDoctor = activeUser?.role === 'doctor';
+    const doctorCedula = isDoctor ? activeUser!.cedula : null;
+
+    let apptsQuery = supabase.from('appointments').select('*');
+    if (doctorCedula) {
+      apptsQuery = apptsQuery.eq('doctor_id', doctorCedula);
+    }
+
+    let availQuery = supabase.from('doctor_availability').select('*');
+    if (doctorCedula) {
+      availQuery = availQuery.eq('doctor_cedula', doctorCedula);
+    }
+
+    let schedQuery = supabase.from('doctor_schedule').select('*');
+    if (doctorCedula) {
+      schedQuery = schedQuery.eq('doctor_cedula', doctorCedula);
+    }
+
+    let disabledQuery = supabase.from('disabled_time_slots').select('*');
+    if (doctorCedula) {
+      disabledQuery = disabledQuery.eq('doctor_cedula', doctorCedula);
+    }
+
+    let disabledDaysQuery = supabase.from('doctor_disabled_days').select('*');
+    if (doctorCedula) {
+      disabledDaysQuery = disabledDaysQuery.eq('doctor_cedula', doctorCedula);
+    }
+
+    let notifQuery = supabase.from('notifications').select('*');
+    if (doctorCedula) {
+      notifQuery = notifQuery.eq('doctor_cedula', doctorCedula);
+    }
+
     const [usersRes, apptsRes, sedeRes, queueRes, availRes, schedRes, disabledRes, disabledDaysRes, notifRes, specRes] = await Promise.all([
       supabase.from('users').select('*'),
-      supabase.from('appointments').select('*'),
+      apptsQuery,
       supabase.from('sede_config').select('*').eq('id', 1).maybeSingle(),
       supabase.from('queue_state').select('*').eq('id', 1).maybeSingle(),
-      supabase.from('doctor_availability').select('*'),
-      supabase.from('doctor_schedule').select('*'),
-      supabase.from('disabled_time_slots').select('*'),
-      supabase.from('doctor_disabled_days').select('*'),
-      supabase.from('notifications').select('*'),
+      availQuery,
+      schedQuery,
+      disabledQuery,
+      disabledDaysQuery,
+      notifQuery,
       supabase.from('specialties').select('*'),
     ]);
 
@@ -391,7 +427,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [data.countdownEndsAt, data.currentCalledId]);
 
   const markAbsentAuto = async (calledId: string) => {
-    const { data: appts } = await supabase.from('appointments').select('*');
+    const activeUser = currentUserRef.current;
+    const isDoctor = activeUser?.role === 'doctor';
+    const doctorCedula = isDoctor ? activeUser!.cedula : null;
+
+    let query = supabase.from('appointments').select('*');
+    if (doctorCedula) {
+      query = query.eq('doctor_id', doctorCedula);
+    }
+    const { data: appts } = await query;
     const all = (appts as DbAppointment[] ?? []);
     const waitingApts = all
       .filter((a) => a.status === 'checked-in' || a.status === 'rescheduled')
@@ -531,7 +575,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const callNext = async () => {
-    const { data: appts } = await supabase.from('appointments').select('*');
+    const activeUser = currentUserRef.current;
+    const isDoctor = activeUser?.role === 'doctor';
+    const doctorCedula = isDoctor ? activeUser!.cedula : null;
+
+    let query = supabase.from('appointments').select('*');
+    if (doctorCedula) {
+      query = query.eq('doctor_id', doctorCedula);
+    }
+    const { data: appts } = await query;
     const all = (appts as DbAppointment[] ?? []);
     const waiting = all
       .filter((a) => a.status === 'checked-in' || a.status === 'rescheduled')
@@ -603,7 +655,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!data.currentCalledId) return;
     const calledId = data.currentCalledId;
 
-    const { data: appts } = await supabase.from('appointments').select('*');
+    const activeUser = currentUserRef.current;
+    const isDoctor = activeUser?.role === 'doctor';
+    const doctorCedula = isDoctor ? activeUser!.cedula : null;
+
+    let query = supabase.from('appointments').select('*');
+    if (doctorCedula) {
+      query = query.eq('doctor_id', doctorCedula);
+    }
+    const { data: appts } = await query;
     const all = (appts as DbAppointment[] ?? []);
     const waitingApts = all
       .filter((a) => a.status === 'checked-in' || a.status === 'rescheduled')

@@ -106,9 +106,12 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
     setBusy(false);
   };
 
-  // Filter appointments to show ONLY today's
+  // Filter appointments to show ONLY today's AND only this doctor's
   const todayStr = getTodayStr();
-  const waitingPatients = data.appointments
+  const myAppointments = data.appointments.filter(
+    (a) => a.doctorCedula === undefined || a.doctorCedula === user.cedula,
+  );
+  const waitingPatients = myAppointments
     .filter(
       (a) =>
         (a.status === 'checked-in' || a.status === 'rescheduled') &&
@@ -116,10 +119,10 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
     )
     .sort((a, b) => a.ticketNumber - b.ticketNumber);
 
-  const calledPatient = data.appointments.find((a) => a.id === data.currentCalledId);
-  const inAttendance = data.appointments.find((a) => a.status === 'in-attendance');
+  const calledPatient = myAppointments.find((a) => a.id === data.currentCalledId);
+  const inAttendance = myAppointments.find((a) => a.status === 'in-attendance');
 
-  const attendedToday = data.appointments.filter(
+  const attendedToday = myAppointments.filter(
     (a) => a.status === 'attended' && (a.scheduledDate === todayStr || a.scheduledDate === undefined),
   );
   const avgTime = data.attendedCount > 0
@@ -264,7 +267,7 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
         <ErrorBoundary fallbackTitle="Error en Citas Pendientes">
           <UpcomingAppointmentsSection
             doctorCedula={user.cedula}
-            appointments={data.appointments}
+            appointments={myAppointments}
             onApptClick={(apt) => setSelectedAppt(apt)}
           />
         </ErrorBoundary>
@@ -277,7 +280,7 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
             doctorName={user.name}
             specialty={user.specialty ?? 'Médico General'}
             loading={loading}
-            appointments={data.appointments}
+            appointments={myAppointments}
             getSchedule={getDoctorSchedule}
             onToggleDay={toggleScheduleDay}
             ensureWeekdaysScheduled={ensureWeekdaysScheduled}
