@@ -74,7 +74,7 @@ function Toast({ toast, onClose }: { toast: ToastState; onClose: () => void }) {
 }
 
 export function AdminPanel({ user }: AdminPanelProps) {
-  const { data, updateSede, setSameDayBooking, setWeekendBooking, addUser, removeUser, resetAll, updateDoctorSpecialty, getSpecialties, addSpecialty, updateSpecialty } = useApp();
+  const { data, updateSede, addUser, removeUser, resetAll, updateDoctorSpecialty, getSpecialties, addSpecialty, updateSpecialty } = useApp();
   const [tab, setTab] = useState<Tab>('sede');
   const [deleteError, setDeleteError] = useState('');
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -90,34 +90,6 @@ export function AdminPanel({ user }: AdminPanelProps) {
       showToast('¡Parámetros de la sede actualizados y guardados en Supabase con éxito!', 'success');
     } catch {
       showToast('Error al guardar los parámetros. Revisa tu conexión e intenta nuevamente.', 'error');
-    }
-  };
-
-  const handleToggleSameDay = async (next: boolean) => {
-    try {
-      await setSameDayBooking(next);
-      showToast(
-        next
-          ? 'Modo prueba activado: se pueden agendar citas para hoy.'
-          : 'Modo prueba desactivado: se restaura la anticipación de un día.',
-        'success',
-      );
-    } catch {
-      showToast('Error al cambiar el modo prueba. Revisa tu conexión e intenta nuevamente.', 'error');
-    }
-  };
-
-  const handleToggleWeekend = async (next: boolean) => {
-    try {
-      await setWeekendBooking(next);
-      showToast(
-        next
-          ? 'Fines de semana habilitados para agendar citas.'
-          : 'Fines de semana deshabilitados para agendar citas.',
-        'success',
-      );
-    } catch {
-      showToast('Error al cambiar la opción de fines de semana. Intenta nuevamente.', 'error');
     }
   };
 
@@ -201,14 +173,7 @@ export function AdminPanel({ user }: AdminPanelProps) {
         />
       )}
       {tab === 'params' && <ParamsTab sede={data.sede} onSave={handleSaveSede} onReset={handleReset} />}
-      {tab === 'test' && (
-        <TestModeTab
-          sameDayEnabled={data.sede.allowSameDayBooking}
-          onToggleSameDay={handleToggleSameDay}
-          weekendEnabled={data.sede.allowWeekendBooking}
-          onToggleWeekend={handleToggleWeekend}
-        />
-      )}
+      {tab === 'test' && <TestModeTab />}
     </div>
   );
 }
