@@ -8,19 +8,25 @@ import { DoctorPanel } from '@/components/doctor/DoctorPanel';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 import { SecretaryPanel } from '@/components/secretary/SecretaryPanel';
 import { TvScreen } from '@/components/tv/TvScreen';
+import { TvCodesScreen } from '@/components/tv/TvCodesScreen';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { InteractiveBackground } from '@/components/InteractiveBackground';
 import type { Role } from '@/types';
 
-function useIsTvScreen(): boolean {
-  const [isTv, setIsTv] = useState(false);
+function useRoute(): 'pantalla' | 'tv-codes' | null {
+  const [route, setRoute] = useState<'pantalla' | 'tv-codes' | null>(null);
   useEffect(() => {
-    const check = () => setIsTv(window.location.pathname.startsWith('/pantalla'));
+    const check = () => {
+      const path = window.location.pathname;
+      if (path.startsWith('/pantalla')) setRoute('pantalla');
+      else if (path.startsWith('/tv-codes')) setRoute('tv-codes');
+      else setRoute(null);
+    };
     check();
     window.addEventListener('popstate', check);
     return () => window.removeEventListener('popstate', check);
   }, []);
-  return isTv;
+  return route;
 }
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -264,12 +270,20 @@ function WhatsAppFloatingButton() {
 }
 
 function App() {
-  const isTv = useIsTvScreen();
+  const route = useRoute();
 
-  if (isTv) {
+  if (route === 'pantalla') {
     return (
       <AppErrorBoundary>
         <TvScreen />
+      </AppErrorBoundary>
+    );
+  }
+
+  if (route === 'tv-codes') {
+    return (
+      <AppErrorBoundary>
+        <TvCodesScreen />
       </AppErrorBoundary>
     );
   }
