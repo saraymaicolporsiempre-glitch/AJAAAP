@@ -42,6 +42,7 @@ interface AppContextValue {
   setSameDayBooking: (enabled: boolean) => Promise<void>;
   setWeekendBooking: (enabled: boolean) => Promise<void>;
   setCheckinMethod: (method: 'gps' | 'code') => Promise<void>;
+  setCheckinActive: (active: boolean) => Promise<void>;
   addUser: (user: User) => Promise<void>;
   removeUser: (cedula: string) => Promise<boolean>;
   scheduleAppointment: (params: ScheduleAppointmentParams) => Promise<{ appointment: Appointment | null; error: string | null }>;
@@ -104,6 +105,7 @@ interface DbSedeConfig {
   same_day_booking: boolean;
   allow_weekend_booking: boolean;
   checkin_method: string;
+  is_active: boolean;
 }
 
 interface DbDoctorAvailability {
@@ -306,6 +308,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         allowSameDayBooking: s.same_day_booking,
         allowWeekendBooking: s.allow_weekend_booking,
         checkinMethod: (s.checkin_method === 'code' ? 'code' : 'gps'),
+        isActive: s.is_active !== false,
       };
     }
 
@@ -705,6 +708,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (sede.allowSameDayBooking !== undefined) update.same_day_booking = sede.allowSameDayBooking;
     if (sede.allowWeekendBooking !== undefined) update.allow_weekend_booking = sede.allowWeekendBooking;
     if (sede.checkinMethod !== undefined) update.checkin_method = sede.checkinMethod;
+    if (sede.isActive !== undefined) update.is_active = sede.isActive;
     update.updated_at = new Date().toISOString();
 
     const { error } = await supabase.from('sede_config').update(update).eq('id', 1);
@@ -732,6 +736,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setCheckinMethod = async (method: 'gps' | 'code') => {
     await updateSede({ checkinMethod: method });
+  };
+
+  const setCheckinActive = async (active: boolean) => {
+    await updateSede({ isActive: active });
   };
 
   const addUser = async (user: User) => {
@@ -1162,6 +1170,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSameDayBooking,
         setWeekendBooking,
         setCheckinMethod,
+        setCheckinActive,
         addUser,
         removeUser,
         scheduleAppointment,

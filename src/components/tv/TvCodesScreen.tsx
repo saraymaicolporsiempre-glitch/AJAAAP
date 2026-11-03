@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Lock, Hash, Clock, Maximize2, LogOut, Loader2, AlertTriangle } from 'lucide-react';
+import { Lock, Hash, Clock, Maximize2, LogOut, Loader2, AlertTriangle, DoorClosed } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useCheckinActive } from '@/hooks/useCheckinActive';
 import { AppLogoMark } from '@/components/FastyTurnLogo';
 
 const ACCESS_CODE = '05062023';
@@ -101,6 +102,7 @@ export function TvCodesScreen() {
 
 function TvCodesPreview({ onLogout }: { onLogout: () => void }) {
   const [code, setCode] = useState<DbCheckinCode | null>(null);
+  const { active: checkinActive, loading: activeLoading } = useCheckinActive();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -141,10 +143,10 @@ function TvCodesPreview({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   const countdown = useMemo(() => {
-    if (!code) return 0;
+    if (!code || !checkinActive) return 0;
     const remaining = new Date(code.expires_at).getTime() - now;
     return Math.max(0, Math.floor(remaining / 1000));
-  }, [code, now]);
+  }, [code, now, checkinActive]);
 
   const mins = Math.floor(countdown / 60);
   const secs = countdown % 60;
@@ -203,7 +205,18 @@ function TvCodesPreview({ onLogout }: { onLogout: () => void }) {
 
       {/* Content */}
       <div className="flex-1 flex items-center justify-center p-6">
-        {error ? (
+        {!activeLoading && !checkinActive ? (
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-24 h-24 rounded-3xl bg-slate-800 flex items-center justify-center mb-6">
+              <DoorClosed className="w-12 h-12 text-slate-500" />
+            </div>
+            <h2 className="text-3xl font-extrabold text-slate-300 mb-2">Recepción Cerrada</h2>
+            <p className="text-lg text-slate-500">Fuera de Servicio</p>
+            <p className="text-sm text-slate-600 mt-3 max-w-sm">
+              El check-in está pausado. El sistema de códigos está inhabilitado temporalmente.
+            </p>
+          </div>
+        ) : error ? (
           <div className="bg-red-500/20 border border-red-500/40 rounded-2xl px-8 py-6 text-center">
             <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
             <p className="text-red-400 font-semibold text-lg">{error}</p>

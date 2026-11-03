@@ -9,6 +9,7 @@ export const DEFAULT_SEDE: SedeConfig = {
   allowSameDayBooking: false,
   allowWeekendBooking: false,
   checkinMethod: 'gps',
+  isActive: true,
 };
 
 export function createMockData(): AppData {

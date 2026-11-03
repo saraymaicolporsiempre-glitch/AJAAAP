@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Tv, Clock, Hash, Users, RefreshCw } from 'lucide-react';
+import { Tv, Clock, Hash, Users, RefreshCw, DoorClosed } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useCheckinCode } from '@/hooks/useCheckinCode';
+import { useCheckinActive } from '@/hooks/useCheckinActive';
 import { AppLogoMark } from '@/components/FastyTurnLogo';
 import type { Appointment } from '@/types';
 
@@ -19,6 +20,7 @@ const POLL_MS = 2000;
 
 export function TvScreen() {
   const { code, loading, error } = useCheckinCode();
+  const { active: checkinActive, loading: activeLoading } = useCheckinActive();
   const [now, setNow] = useState(Date.now());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [sedeName, setSedeName] = useState('Centro de Atención');
@@ -87,10 +89,10 @@ export function TvScreen() {
   }, []);
 
   const countdown = useMemo(() => {
-    if (!code) return 0;
+    if (!code || !checkinActive) return 0;
     const remaining = new Date(code.expiresAt).getTime() - now;
     return Math.max(0, Math.floor(remaining / 1000));
-  }, [code, now]);
+  }, [code, now, checkinActive]);
 
   const mins = Math.floor(countdown / 60);
   const secs = countdown % 60;
@@ -132,6 +134,22 @@ export function TvScreen() {
       <div className="flex-1 flex flex-col lg:flex-row gap-6 p-6 overflow-hidden">
         {/* Left: QR + PIN */}
         <div className="flex-1 flex flex-col items-center justify-center lg:max-w-xl">
+          {/* Recepción Cerrada overlay */}
+          {!activeLoading && !checkinActive && (
+            <div className="flex flex-col items-center justify-center text-center py-12">
+              <div className="w-24 h-24 rounded-3xl bg-slate-800 flex items-center justify-center mb-6">
+                <DoorClosed className="w-12 h-12 text-slate-500" />
+              </div>
+              <h2 className="text-3xl font-extrabold text-slate-300 mb-2">Recepción Cerrada</h2>
+              <p className="text-lg text-slate-500">Fuera de Servicio</p>
+              <p className="text-sm text-slate-600 mt-3 max-w-sm">
+                El check-in está pausado. Dirígete a secretaría para ser atendido.
+              </p>
+            </div>
+          )}
+
+          {checkinActive && (
+            <>
           <div className="text-center mb-4">
             <h2 className="text-2xl font-extrabold mb-1">Escanea para hacer Check-in</h2>
             <p className="text-slate-400">El código se renueva cada 5 minutos</p>
@@ -213,6 +231,8 @@ export function TvScreen() {
                 />
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
 

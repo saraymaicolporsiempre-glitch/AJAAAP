@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FlaskConical, Loader2, MapPin, QrCode } from 'lucide-react';
+import { FlaskConical, Loader2, MapPin, QrCode, Power } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_SEDE } from '@/data/mockData';
 import type { CheckinMethod } from '@/types';
@@ -238,6 +238,96 @@ function CheckinMethodSelector() {
   );
 }
 
+function CheckinActiveSwitch() {
+  const [active, setActive] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const { data } = await supabase
+      .from('sede_config')
+      .select('is_active')
+      .eq('id', 1)
+      .maybeSingle();
+    const row = data as { is_active: boolean } | null;
+    setActive(row ? row.is_active !== false : true);
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      await ensureSedeRow();
+      await refresh();
+    })();
+  }, [refresh]);
+
+  const handleToggle = async () => {
+    if (busy) return;
+    const next = !active;
+    setBusy(true);
+    setActive(next);
+    try {
+      const { error } = await supabase
+        .from('sede_config')
+        .update({ is_active: next, updated_at: new Date().toISOString() })
+        .eq('id', 1);
+      if (error) setActive(!next);
+    } catch {
+      setActive(!next);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-between gap-3 py-1">
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-800 text-sm">Estado del Check-in</p>
+          <p className="text-xs text-slate-500 mt-0.5">Cargando...</p>
+        </div>
+        <Loader2 className="w-5 h-5 text-slate-300 animate-spin flex-shrink-0" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`space-y-2 rounded-xl p-3 border ${active ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-300 bg-slate-100'}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex items-center gap-2">
+          <Power className={`w-4 h-4 flex-shrink-0 ${active ? 'text-emerald-600' : 'text-slate-400'}`} />
+          <div>
+            <p className="font-semibold text-slate-800 text-sm">Estado del Check-in</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Pausa el check-in al finalizar la jornada.
+            </p>
+          </div>
+        </div>
+        <button
+          role="switch"
+          aria-checked={active}
+          onClick={handleToggle}
+          disabled={busy}
+          className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+            active ? 'bg-emerald-500' : 'bg-slate-400'
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+              active ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+      <p className={`text-xs font-medium ${active ? 'text-emerald-700' : 'text-slate-500'}`}>
+        {active
+          ? 'Activo: los pacientes pueden hacer check-in normalmente.'
+          : 'Pausado: Recepción Cerrada / Fuera de Servicio. El check-in está inhabilitado.'}
+      </p>
+    </div>
+  );
+}
+
 export function TestModeTab() {
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 animate-slide-up space-y-5">
@@ -245,6 +335,7 @@ export function TestModeTab() {
         <FlaskConical className="w-5 h-5 text-blue-700" />
         Prueba Test
       </h3>
+      <CheckinActiveSwitch />
       <CheckinMethodSelector />
       <TestSwitch
         title="Agendar citas para hoy"
