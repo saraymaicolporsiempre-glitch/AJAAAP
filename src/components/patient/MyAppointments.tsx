@@ -20,6 +20,7 @@ import { CheckInZoneCard } from '@/components/patient/CheckInZoneCard';
 import { SedeDistance } from '@/components/patient/SedeDistance';
 import { useNow, formatCountdown } from '@/hooks/useNow';
 import { COUNTDOWN_SECONDS } from '@/types';
+import { CheckInByCode } from '@/components/patient/CheckInByCode';
 import type { User as AppUser, Appointment } from '@/types';
 
 interface MyAppointmentsProps {
@@ -195,6 +196,7 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
 
       {/* Check-in section — always visible when patient has a scheduled appointment and hasn't checked in */}
       {scheduledAppts.some((a) => a.status === 'scheduled') && (
+        <>
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 animate-slide-up space-y-4">
           <h2 className="font-semibold text-slate-800 flex items-center gap-2">
             <MapPin className="w-5 h-5 text-blue-700" />
@@ -286,6 +288,12 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
             </div>
           )}
         </div>
+
+        {/* Check-in por código rotatorio — alternativa al GPS */}
+        {scheduledAppts.some((a) => a.status === 'scheduled') && (
+          <CheckInByCode user={user} onCheckedIn={onCheckedIn} />
+        )}
+        </>
       )}
 
       {/* No appointments state */}

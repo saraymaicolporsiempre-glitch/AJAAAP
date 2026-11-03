@@ -7,9 +7,21 @@ import { MyAppointments } from '@/components/patient/MyAppointments';
 import { DoctorPanel } from '@/components/doctor/DoctorPanel';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 import { SecretaryPanel } from '@/components/secretary/SecretaryPanel';
+import { TvScreen } from '@/components/tv/TvScreen';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { InteractiveBackground } from '@/components/InteractiveBackground';
 import type { Role } from '@/types';
+
+function useIsTvScreen(): boolean {
+  const [isTv, setIsTv] = useState(false);
+  useEffect(() => {
+    const check = () => setIsTv(window.location.pathname.startsWith('/pantalla'));
+    check();
+    window.addEventListener('popstate', check);
+    return () => window.removeEventListener('popstate', check);
+  }, []);
+  return isTv;
+}
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -252,6 +264,16 @@ function WhatsAppFloatingButton() {
 }
 
 function App() {
+  const isTv = useIsTvScreen();
+
+  if (isTv) {
+    return (
+      <AppErrorBoundary>
+        <TvScreen />
+      </AppErrorBoundary>
+    );
+  }
+
   return (
     <AppErrorBoundary>
       <InteractiveBackground />
