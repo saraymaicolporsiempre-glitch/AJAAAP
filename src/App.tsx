@@ -134,27 +134,38 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-slate-50/70 backdrop-blur-[2px] flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 safe-bottom">
-        <div className="max-w-md mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src="/aja_app_logo.svg" alt="AJA' APP" className="h-10 w-auto object-contain" />
-              <h1 className="text-lg font-extrabold text-slate-800 leading-tight">
-                {roleLabel(currentUser.role)} · {currentUser.name}
-              </h1>
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl safe-bottom shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+        <div className="max-w-md mx-auto px-4 py-3 sm:px-5">
+          <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-50 ring-1 ring-slate-200/80">
+                <img src="/aja_app_logo.svg" alt="AJA' APP" className="h-9 w-auto object-contain" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-700">
+                  {roleLabel(currentUser.role)}
+                </p>
+                <h1 className="truncate text-base font-extrabold leading-tight text-slate-800 sm:text-lg">
+                  {currentUser.name}
+                </h1>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] font-medium text-emerald-600">En vivo</span>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 shadow-sm shadow-emerald-100">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                En vivo
               </div>
               <button
                 onClick={logout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium
-                           text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                className="group inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-sm font-semibold text-slate-600 shadow-sm transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600 active:scale-95 sm:px-3"
                 title="Cerrar sesión"
+                aria-label="Salir de la cuenta"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                 <span className="hidden sm:inline">Salir</span>
               </button>
             </div>
