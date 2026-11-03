@@ -37,6 +37,8 @@ export interface Appointment {
   reason?: string;
 }
 
+export type CheckinMethod = 'gps' | 'code';
+
 export interface SedeConfig {
   name: string;
   address: string;
@@ -45,6 +47,7 @@ export interface SedeConfig {
   consultationMinutes: number;
   allowSameDayBooking: boolean;
   allowWeekendBooking: boolean;
+  checkinMethod: CheckinMethod;
 }
 
 export interface DoctorScheduleEntry {

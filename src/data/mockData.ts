@@ -8,6 +8,7 @@ export const DEFAULT_SEDE: SedeConfig = {
   consultationMinutes: 15,
   allowSameDayBooking: false,
   allowWeekendBooking: false,
+  checkinMethod: 'gps',
 };
 
 export function createMockData(): AppData {
@@ -101,6 +102,7 @@ export function createMockData(): AppData {
     doctorAvailability: [],
     doctorSchedule: [],
     disabledTimeSlots: [],
+    doctorDisabledDays: [],
     notifications: [],
     specialties: [],
   };

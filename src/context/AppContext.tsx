@@ -41,6 +41,7 @@ interface AppContextValue {
   updateSede: (sede: Partial<SedeConfig>) => Promise<void>;
   setSameDayBooking: (enabled: boolean) => Promise<void>;
   setWeekendBooking: (enabled: boolean) => Promise<void>;
+  setCheckinMethod: (method: 'gps' | 'code') => Promise<void>;
   addUser: (user: User) => Promise<void>;
   removeUser: (cedula: string) => Promise<boolean>;
   scheduleAppointment: (params: ScheduleAppointmentParams) => Promise<{ appointment: Appointment | null; error: string | null }>;
@@ -102,6 +103,7 @@ interface DbSedeConfig {
   consultation_minutes: number;
   same_day_booking: boolean;
   allow_weekend_booking: boolean;
+  checkin_method: string;
 }
 
 interface DbDoctorAvailability {
@@ -303,6 +305,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         consultationMinutes: s.consultation_minutes,
         allowSameDayBooking: s.same_day_booking,
         allowWeekendBooking: s.allow_weekend_booking,
+        checkinMethod: (s.checkin_method === 'code' ? 'code' : 'gps'),
       };
     }
 
@@ -701,6 +704,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (sede.consultationMinutes !== undefined) update.consultation_minutes = sede.consultationMinutes;
     if (sede.allowSameDayBooking !== undefined) update.same_day_booking = sede.allowSameDayBooking;
     if (sede.allowWeekendBooking !== undefined) update.allow_weekend_booking = sede.allowWeekendBooking;
+    if (sede.checkinMethod !== undefined) update.checkin_method = sede.checkinMethod;
     update.updated_at = new Date().toISOString();
 
     const { error } = await supabase.from('sede_config').update(update).eq('id', 1);
@@ -724,6 +728,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     for (const doctor of doctors) {
       await ensureWeekdaysScheduled(doctor.cedula, 6, true, true);
     }
+  };
+
+  const setCheckinMethod = async (method: 'gps' | 'code') => {
+    await updateSede({ checkinMethod: method });
   };
 
   const addUser = async (user: User) => {
@@ -1153,6 +1161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateSede,
         setSameDayBooking,
         setWeekendBooking,
+        setCheckinMethod,
         addUser,
         removeUser,
         scheduleAppointment,

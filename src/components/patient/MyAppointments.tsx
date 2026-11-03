@@ -194,9 +194,10 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
         </div>
       )}
 
-      {/* Check-in section — always visible when patient has a scheduled appointment and hasn't checked in */}
+      {/* Check-in section — visible when patient has a scheduled appointment and hasn't checked in */}
       {scheduledAppts.some((a) => a.status === 'scheduled') && (
         <>
+        {data.sede.checkinMethod === 'gps' && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 animate-slide-up space-y-4">
           <h2 className="font-semibold text-slate-800 flex items-center gap-2">
             <MapPin className="w-5 h-5 text-blue-700" />
@@ -288,9 +289,10 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
             </div>
           )}
         </div>
+        )}
 
-        {/* Check-in por código rotatorio — alternativa al GPS */}
-        {scheduledAppts.some((a) => a.status === 'scheduled') && (
+        {/* Check-in por código rotatorio — visible cuando el método es 'code' */}
+        {data.sede.checkinMethod === 'code' && (
           <CheckInByCode user={user} onCheckedIn={onCheckedIn} />
         )}
         </>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FlaskConical, Loader2 } from 'lucide-react';
+import { FlaskConical, Loader2, MapPin, QrCode } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_SEDE } from '@/data/mockData';
+import type { CheckinMethod } from '@/types';
 
 interface SedeConfigRow {
   id: number;
@@ -142,6 +143,101 @@ function TestSwitch({ title, description, statusOn, statusOff, field }: TestSwit
   );
 }
 
+function CheckinMethodSelector() {
+  const [method, setMethod] = useState<CheckinMethod>('gps');
+  const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const { data } = await supabase
+      .from('sede_config')
+      .select('checkin_method')
+      .eq('id', 1)
+      .maybeSingle();
+    const row = data as { checkin_method: string } | null;
+    setMethod(row && row.checkin_method === 'code' ? 'code' : 'gps');
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      await ensureSedeRow();
+      await refresh();
+    })();
+  }, [refresh]);
+
+  const handleSelect = async (next: CheckinMethod) => {
+    if (busy || next === method) return;
+    setBusy(true);
+    setMethod(next);
+    try {
+      const { error } = await supabase
+        .from('sede_config')
+        .update({ checkin_method: next, updated_at: new Date().toISOString() })
+        .eq('id', 1);
+      if (error) setMethod(method === 'code' ? 'gps' : 'code');
+    } catch {
+      setMethod(method === 'code' ? 'gps' : 'code');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-between gap-3 py-1">
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-800 text-sm">Método de Check-in</p>
+          <p className="text-xs text-slate-500 mt-0.5">Cargando...</p>
+        </div>
+        <Loader2 className="w-5 h-5 text-slate-300 animate-spin flex-shrink-0" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <p className="font-semibold text-slate-800 text-sm">Método de Check-in</p>
+      </div>
+      <p className="text-xs text-slate-500">
+        Selecciona cómo los pacientes confirman su llegada a la sala de espera.
+      </p>
+      <div className="grid grid-cols-2 gap-2 mt-2">
+        <button
+          onClick={() => handleSelect('gps')}
+          disabled={busy}
+          className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all border ${
+            method === 'gps'
+              ? 'border-blue-600 bg-blue-50 text-blue-800 shadow-sm'
+              : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+          } disabled:opacity-60`}
+        >
+          <MapPin className="w-4 h-4" />
+          GPS
+        </button>
+        <button
+          onClick={() => handleSelect('code')}
+          disabled={busy}
+          className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all border ${
+            method === 'code'
+              ? 'border-blue-600 bg-blue-50 text-blue-800 shadow-sm'
+              : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+          } disabled:opacity-60`}
+        >
+          <QrCode className="w-4 h-4" />
+          Código (PIN/QR)
+        </button>
+      </div>
+      <p className="text-xs text-slate-400">
+        {method === 'gps'
+          ? 'Activo: los pacientes verifican su ubicación por GPS para hacer check-in.'
+          : 'Activo: los pacientes ingresan el PIN o escanean el QR de la pantalla de la sala de espera.'}
+      </p>
+    </div>
+  );
+}
+
 export function TestModeTab() {
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 animate-slide-up space-y-5">
@@ -149,6 +245,7 @@ export function TestModeTab() {
         <FlaskConical className="w-5 h-5 text-blue-700" />
         Prueba Test
       </h3>
+      <CheckinMethodSelector />
       <TestSwitch
         title="Agendar citas para hoy"
         description="Desactiva temporalmente la regla de un día de anticipación para demostraciones en vivo."
