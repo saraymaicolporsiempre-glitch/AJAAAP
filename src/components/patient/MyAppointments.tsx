@@ -20,7 +20,7 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { CheckInZoneCard } from '@/components/patient/CheckInZoneCard';
 import { SedeDistance } from '@/components/patient/SedeDistance';
 import { useNow, formatCountdown } from '@/hooks/useNow';
-import { COUNTDOWN_SECONDS } from '@/types';
+import { getCallRemainingSeconds } from '@/lib/callTimer';
 import { CheckInByCode } from '@/components/patient/CheckInByCode';
 import { useCheckinActive } from '@/hooks/useCheckinActive';
 import type { User as AppUser, Appointment } from '@/types';
@@ -72,12 +72,24 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
   const geoOk = result.status === 'success' || result.status === 'simulated';
 
   const isCalled = activeAppt?.status === 'called';
-  const countdownRemaining = isCalled && data.countdownEndsAt
-    ? Math.max(0, Math.floor((data.countdownEndsAt - now) / 1000))
+  const countdownRemaining = isCalled
+    ? getCallRemainingSeconds(activeAppt?.calledAt, now)
     : 0;
 
   // If patient has already checked in, show waiting screen content inline
   const hasCheckedIn = activeAppt && (activeAppt.status === 'checked-in' || activeAppt.status === 'called' || activeAppt.status === 'in-attendance' || activeAppt.status === 'rescheduled');
+
+  const myDoctorCedula = activeAppt?.doctorCedula ?? doctorCedula;
+  const currentCall = myDoctorCedula
+    ? data.appointments.find((a) => a.status === 'called' && a.doctorCedula === myDoctorCedula)
+    : undefined;
+  const currentCallRemaining = getCallRemainingSeconds(currentCall?.calledAt, now);
+  const myQueue = myDoctorCedula
+    ? data.appointments
+        .filter((a) => a.doctorCedula === myDoctorCedula && (a.status === 'checked-in' || a.status === 'rescheduled'))
+        .sort((a, b) => a.ticketNumber - b.ticketNumber)
+    : [];
+  const isNextInLine = !!currentCall && myQueue[0]?.patientCedula === user.cedula;
 
   const handleCheckIn = async () => {
     if (!geoOk || result.distance === null) {
@@ -96,6 +108,27 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
 
   return (
     <div className="min-h-[calc(100vh-140px)] px-4 py-5 max-w-md mx-auto space-y-4">
+      {currentCall && currentCall.patientCedula !== user.cedula && (
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-blue-100 flex items-center justify-between gap-3 animate-slide-up">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Bell className="w-5 h-5 text-blue-700 flex-shrink-0" />
+            <p className="text-sm text-slate-700 truncate">
+              Llamando a: <span className="font-bold">Turno #{String(currentCall.ticketNumber).padStart(2, '0')}</span>
+            </p>
+          </div>
+          <span className="font-mono font-bold text-blue-700 whitespace-nowrap">
+            Tiempo: {formatCountdown(currentCallRemaining)}
+          </span>
+        </div>
+      )}
+
+      {isNextInLine && (
+        <div className="rounded-2xl p-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-start gap-2.5 animate-slide-up">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <p>Eres el siguiente en turno, mantente atento por si el paciente actual no se presenta.</p>
+        </div>
+      )}
+
       {/* Called alert — if patient was called */}
       {isCalled && (
         <div className="bg-gradient-to-br from-red-500 to-rose-600 rounded-3xl p-6 shadow-xl shadow-red-200 text-white text-center animate-bounce-in">

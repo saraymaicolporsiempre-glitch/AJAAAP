@@ -27,6 +27,7 @@ import {
 import { useApp } from '@/context/AppContext';
 import { useNow, formatCountdown } from '@/hooks/useNow';
 import { COUNTDOWN_SECONDS } from '@/types';
+import { getCallRemainingSeconds } from '@/lib/callTimer';
 import type { User as AppUser, Appointment } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TabStrip } from '@/components/TabStrip';
@@ -86,15 +87,15 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
     setBusy(false);
   };
 
-  const handlePresent = async () => {
+  const handlePresent = async (calledId: string) => {
     setBusy(true);
-    await markPresent();
+    await markPresent(calledId);
     setBusy(false);
   };
 
-  const handleAbsent = async () => {
+  const handleAbsent = async (calledId: string) => {
     setBusy(true);
-    await markAbsentAndReschedule();
+    await markAbsentAndReschedule(calledId);
     setBusy(false);
   };
 
@@ -111,7 +112,7 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
     )
     .sort((a, b) => a.ticketNumber - b.ticketNumber);
 
-  const calledPatient = myAppointments.find((a) => a.id === data.currentCalledId);
+  const calledPatient = myAppointments.find((a) => a.status === 'called');
   const inAttendance = myAppointments.find((a) => a.status === 'in-attendance');
 
   const attendedToday = myAppointments.filter(
@@ -121,9 +122,7 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
     ? Math.round(data.totalConsultationMinutes / data.attendedCount)
     : 0;
 
-  const countdownRemaining = calledPatient && data.countdownEndsAt
-    ? Math.max(0, Math.floor((data.countdownEndsAt - now) / 1000))
-    : 0;
+  const countdownRemaining = getCallRemainingSeconds(calledPatient?.calledAt, now);
   const countdownProgress = calledPatient
     ? ((COUNTDOWN_SECONDS - countdownRemaining) / COUNTDOWN_SECONDS) * 100
     : 0;
@@ -351,7 +350,7 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
 
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={handlePresent}
+              onClick={() => handlePresent(calledPatient.id)}
               disabled={busy}
               className="bg-white/20 hover:bg-white/30 active:scale-[0.98] transition-all
                          font-semibold py-3 rounded-xl flex items-center justify-center gap-2
@@ -361,7 +360,7 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
               Paciente Presente
             </button>
             <button
-              onClick={handleAbsent}
+              onClick={() => handleAbsent(calledPatient.id)}
               disabled={busy}
               className="bg-white/20 hover:bg-white/30 active:scale-[0.98] transition-all
                          font-semibold py-3 rounded-xl flex items-center justify-center gap-2

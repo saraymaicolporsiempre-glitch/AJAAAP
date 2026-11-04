@@ -10,6 +10,7 @@ import type { AppData, User, SedeConfig, Appointment, DoctorAvailability, Doctor
 import { COUNTDOWN_SECONDS } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_SEDE } from '@/data/mockData';
+import { CALL_WINDOW_MS } from '@/lib/callTimer';
 
 const SESSION_KEY = 'aja-app-session-cedula';
 
@@ -36,8 +37,8 @@ interface AppContextValue {
   getQueuePosition: (cedula: string) => number;
   getEstimatedWait: (cedula: string) => number;
   callNext: () => Promise<void>;
-  markPresent: () => Promise<void>;
-  markAbsentAndReschedule: () => Promise<void>;
+  markPresent: (calledId: string) => Promise<void>;
+  markAbsentAndReschedule: (calledId: string) => Promise<void>;
   updateSede: (sede: Partial<SedeConfig>) => Promise<void>;
   setSameDayBooking: (enabled: boolean) => Promise<void>;
   setWeekendBooking: (enabled: boolean) => Promise<void>;
@@ -422,50 +423,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [loading]);
 
-  // Auto-absent when countdown hits 0
+  const expiringCallIdsRef = useRef(new Set<string>());
+
   useEffect(() => {
-    if (!data.countdownEndsAt || !data.currentCalledId) return;
-    const remaining = data.countdownEndsAt - Date.now();
-    if (remaining <= 0) {
-      markAbsentAuto(data.currentCalledId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.countdownEndsAt, data.currentCalledId]);
+    if (currentUser?.role !== 'doctor') return;
+    const doctorCedula = currentUser.cedula;
+    const now = Date.now();
+    data.appointments
+      .filter(
+        (a) =>
+          a.status === 'called' &&
+          a.doctorCedula === doctorCedula &&
+          a.calledAt !== undefined &&
+          a.calledAt + CALL_WINDOW_MS <= now,
+      )
+      .forEach((a) => {
+        if (expiringCallIdsRef.current.has(a.id)) return;
+        expiringCallIdsRef.current.add(a.id);
+        expireCall(doctorCedula, a.id)
+          .catch((err) => console.error('Expire call failed:', err))
+          .finally(() => expiringCallIdsRef.current.delete(a.id));
+      });
+  }, [data.appointments, currentUser]);
 
-  const markAbsentAuto = async (calledId: string) => {
-    const activeUser = currentUserRef.current;
-    const isDoctor = activeUser?.role === 'doctor';
-    const doctorCedula = isDoctor ? activeUser!.cedula : null;
-
-    let query = supabase.from('appointments').select('*');
-    if (doctorCedula) {
-      query = query.eq('doctor_id', doctorCedula);
-    }
-    const { data: appts } = await query;
+  const expireCall = async (doctorCedula: string, calledId: string) => {
+    const { data: appts, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('doctor_id', doctorCedula);
+    if (error) throw error;
     const all = (appts as DbAppointment[] ?? []);
-    const waitingApts = all
-      .filter((a) => a.status === 'checked-in' || a.status === 'rescheduled')
-      .sort((a, b) => a.ticket_number - b.ticket_number);
-    const lastTicket = waitingApts.length > 0
-      ? Math.max(...waitingApts.map((a) => a.ticket_number))
-      : Math.max(...all.map((a) => a.ticket_number), 0);
 
     const called = all.find((a) => a.id === calledId);
-    if (!called) return;
+    if (!called || called.status !== 'called') return;
+
+    const next = all
+      .filter((a) => a.status === 'checked-in' || a.status === 'rescheduled')
+      .sort((a, b) => a.ticket_number - b.ticket_number)[0];
+    const newTicket = next
+      ? next.ticket_number
+      : Math.max(...all.map((a) => a.ticket_number)) + 1;
 
     await supabase
       .from('appointments')
       .update({
-        status: 'absent',
+        status: 'rescheduled',
         reschedule_count: called.reschedule_count + 1,
-        ticket_number: lastTicket + 1,
+        ticket_number: newTicket,
       })
-      .eq('id', calledId);
+      .eq('id', calledId)
+      .eq('status', 'called');
+
+    if (next) {
+      await supabase
+        .from('appointments')
+        .update({ ticket_number: called.ticket_number })
+        .eq('id', next.id);
+    }
 
     await supabase
       .from('queue_state')
       .update({ current_called_id: null, countdown_ends_at: null, updated_at: new Date().toISOString() })
-      .eq('id', 1);
+      .eq('id', 1)
+      .eq('current_called_id', calledId);
 
     await loadData();
   };
@@ -642,25 +662,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await loadData();
   };
 
-  const markPresent = async () => {
-    if (!data.currentCalledId) return;
+  const markPresent = async (calledId: string) => {
     await supabase
       .from('appointments')
       .update({ status: 'in-attendance', attendance_start_at: Date.now() })
-      .eq('id', data.currentCalledId);
+      .eq('id', calledId);
 
     await supabase
       .from('queue_state')
       .update({ current_called_id: null, countdown_ends_at: null, updated_at: new Date().toISOString() })
-      .eq('id', 1);
+      .eq('id', 1)
+      .eq('current_called_id', calledId);
 
     await loadData();
   };
 
-  const markAbsentAndReschedule = async () => {
-    if (!data.currentCalledId) return;
-    const calledId = data.currentCalledId;
-
+  const markAbsentAndReschedule = async (calledId: string) => {
     const activeUser = currentUserRef.current;
     const isDoctor = activeUser?.role === 'doctor';
     const doctorCedula = isDoctor ? activeUser!.cedula : null;
@@ -693,7 +710,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await supabase
       .from('queue_state')
       .update({ current_called_id: null, countdown_ends_at: null, updated_at: new Date().toISOString() })
-      .eq('id', 1);
+      .eq('id', 1)
+      .eq('current_called_id', calledId);
 
     await loadData();
   };
