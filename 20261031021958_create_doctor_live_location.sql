@@ -1,32 +1,3 @@
-/*
-# Create doctor live location table
-
-## Plain-English summary
-Stores the real-time GPS position a doctor chooses to share with patients. A doctor turns on the
-"Compartir ubicación en vivo" switch in their panel; while it is on, their position is kept up to date
-here. Patients only see this position when the switch is on. When it is off, the row stays with
-is_sharing = false so patients fall back to the fixed care center location.
-
-## 1. New tables
-- `doctor_live_location`
-  - `doctor_cedula` (text, primary key): the doctor's document number; references `users(cedula)`.
-  - `lat` (double precision, nullable): last shared latitude.
-  - `lng` (double precision, nullable): last shared longitude.
-  - `is_sharing` (boolean, not null, default false): whether the doctor is currently sharing.
-  - `updated_at` (timestamptz, not null, default now()): time of the last update.
-
-## 2. Security
-- Row level security enabled.
-- The app has no sign-in screen, so the anon-key client runs as `anon`. Policies are granted to
-  `anon` and `authenticated`, matching the other tables in this project.
-- Grants: SELECT, INSERT, UPDATE, DELETE on the table to `anon` and `authenticated`.
-
-## 3. Important notes
-1. The migration is idempotent: it can be re-run safely.
-2. Policies are dropped before they are created so re-runs do not fail.
-3. No existing data is changed or removed.
-*/
-
 CREATE TABLE IF NOT EXISTS doctor_live_location (
   doctor_cedula text PRIMARY KEY REFERENCES users(cedula) ON DELETE CASCADE,
   lat double precision,
