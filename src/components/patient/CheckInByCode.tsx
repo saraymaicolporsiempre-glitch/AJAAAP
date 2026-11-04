@@ -85,7 +85,7 @@ export function CheckInByCode({ user, onCheckedIn }: CheckInByCodeProps) {
     }
 
     const gpsDistance = result.distance ?? 0;
-    const apt = await checkIn(user.cedula, user.name, gpsDistance);
+    const apt = await checkIn(user.cedula, user.name, gpsDistance, 'code');
     setBusy(false);
 
     if (apt) {

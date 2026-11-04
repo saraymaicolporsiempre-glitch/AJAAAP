@@ -28,6 +28,7 @@ import { useApp } from '@/context/AppContext';
 import { useNow, formatCountdown } from '@/hooks/useNow';
 import { COUNTDOWN_SECONDS } from '@/types';
 import { getCallRemainingSeconds } from '@/lib/callTimer';
+import { isPastCutoff } from '@/lib/cutoff';
 import type { User as AppUser, Appointment } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TabStrip } from '@/components/TabStrip';
@@ -76,6 +77,7 @@ const ALL_SLOTS = [...MORNING_SLOTS, ...AFTERNOON_SLOTS];
 export function DoctorPanel({ user }: DoctorPanelProps) {
   const { data, callNext, markPresent, markAbsentAndReschedule, getDoctorSchedule, toggleScheduleDay, ensureWeekdaysScheduled, loading, getNotifications, getUnreadNotificationCount, markNotificationsRead } = useApp();
   const now = useNow(1000);
+  const pastCutoff = isPastCutoff(new Date(now));
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<'queue' | 'availability' | 'upcoming'>('queue');
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
@@ -329,10 +331,12 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
             #{String(calledPatient.ticketNumber).padStart(2, '0')} · {calledPatient.patientName}
           </p>
           <div className="text-left mb-3">
-            <PatientDistanceNotice
-              patientCedula={calledPatient.patientCedula}
-              sede={data.sede}
-            />
+            {calledPatient.checkinMethod === 'gps' && (
+              <PatientDistanceNotice
+                patientCedula={calledPatient.patientCedula}
+                sede={data.sede}
+              />
+            )}
           </div>
 
           <div className="inline-flex items-center gap-2 bg-white/15 rounded-2xl px-5 py-2.5 mb-3">
@@ -373,8 +377,8 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
         </div>
       )}
 
-      {/* Call next button — only when no countdown active */}
-      {!calledPatient && (
+      {/* Call next button — only when no countdown active and before 6:30 PM */}
+      {!calledPatient && !pastCutoff && (
         <button
           onClick={handleCallNext}
           disabled={waitingPatients.length === 0 || busy}
@@ -388,7 +392,8 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
         </button>
       )}
 
-      {/* Appointment list — TODAY ONLY */}
+      {/* Appointment list — hidden after 6:30 PM */}
+      {!pastCutoff && (
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-slate-700 flex items-center gap-2">
@@ -420,6 +425,8 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
           </div>
         )}
       </div>
+
+      )}
 
       {/* Attended today */}
       {attendedToday.length > 0 && (

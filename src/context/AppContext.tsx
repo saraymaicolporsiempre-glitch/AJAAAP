@@ -31,7 +31,7 @@ interface AppContextValue {
   loading: boolean;
   login: (cedula: string) => Promise<User | null>;
   logout: () => void;
-  checkIn: (cedula: string, name: string, gpsDistance: number) => Promise<Appointment | null>;
+  checkIn: (cedula: string, name: string, gpsDistance: number, method?: 'gps' | 'code') => Promise<Appointment | null>;
   getMyAppointment: (cedula: string) => Appointment | undefined;
   getMyScheduledAppointments: (cedula: string) => Appointment[];
   getQueuePosition: (cedula: string) => number;
@@ -90,6 +90,7 @@ interface DbAppointment {
   attendance_start_at: number | null;
   attendance_end_at: number | null;
   reschedule_count: number;
+  checkin_method: string;
   reason: string | null;
   doctor_id: string | null;
   doctor_name: string | null;
@@ -193,6 +194,7 @@ function mapAppointment(a: DbAppointment): Appointment {
     attendanceStartAt: a.attendance_start_at ?? undefined,
     attendanceEndAt: a.attendance_end_at ?? undefined,
     rescheduleCount: a.reschedule_count,
+    checkinMethod: (a.checkin_method === 'code' ? 'code' : 'gps'),
     reason: a.reason ?? undefined,
     doctorCedula: a.doctor_id ?? undefined,
     doctorName: a.doctor_name ?? undefined,
@@ -508,7 +510,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(SESSION_KEY);
   };
 
-  const checkIn = async (cedula: string, name: string, gpsDistance: number): Promise<Appointment | null> => {
+  const checkIn = async (cedula: string, name: string, gpsDistance: number, method: 'gps' | 'code' = 'gps'): Promise<Appointment | null> => {
     const { data: existing } = await supabase
       .from('appointments')
       .select('*')
@@ -524,6 +526,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           status: 'checked-in',
           check_in_time: Date.now(),
           gps_distance: gpsDistance,
+          checkin_method: method,
         })
         .eq('id', ex.id)
         .select('*')
@@ -550,6 +553,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ticket_number: ticketNumber,
         check_in_time: Date.now(),
         gps_distance: gpsDistance,
+        checkin_method: method,
         reschedule_count: 0,
       })
       .select('*')

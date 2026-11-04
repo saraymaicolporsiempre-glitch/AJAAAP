@@ -23,6 +23,7 @@ import { useNow, formatCountdown } from '@/hooks/useNow';
 import { getCallRemainingSeconds } from '@/lib/callTimer';
 import { CheckInByCode } from '@/components/patient/CheckInByCode';
 import { useCheckinActive } from '@/hooks/useCheckinActive';
+import { isPastCutoff } from '@/lib/cutoff';
 import type { User as AppUser, Appointment } from '@/types';
 
 interface MyAppointmentsProps {
@@ -78,6 +79,8 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
 
   // If patient has already checked in, show waiting screen content inline
   const hasCheckedIn = activeAppt && (activeAppt.status === 'checked-in' || activeAppt.status === 'called' || activeAppt.status === 'in-attendance' || activeAppt.status === 'rescheduled');
+  const pastCutoff = isPastCutoff(new Date(now));
+  const unattendedAfterCutoff = pastCutoff && activeAppt && (activeAppt.status === 'checked-in' || activeAppt.status === 'rescheduled');
 
   const myDoctorCedula = activeAppt?.doctorCedula ?? doctorCedula;
   const currentCall = myDoctorCedula
@@ -97,7 +100,7 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
       return;
     }
     setCheckInBusy(true);
-    const apt = await checkIn(user.cedula, user.name, result.distance);
+    const apt = await checkIn(user.cedula, user.name, result.distance, 'gps');
     setCheckInBusy(false);
     if (apt) {
       onCheckedIn();
@@ -108,6 +111,18 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
 
   return (
     <div className="min-h-[calc(100vh-140px)] px-4 py-5 max-w-md mx-auto space-y-4">
+      {unattendedAfterCutoff && (
+        <div className="rounded-2xl p-5 bg-amber-50 border border-amber-200 text-amber-800 animate-slide-up space-y-2">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-6 h-6 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Tu cita no alcanzó a ser atendida hoy.</p>
+              <p className="text-sm mt-1">Por favor, comunícate con la secretaria para reagendarla.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {currentCall && currentCall.patientCedula !== user.cedula && (
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-blue-100 flex items-center justify-between gap-3 animate-slide-up">
           <div className="flex items-center gap-2.5 min-w-0">

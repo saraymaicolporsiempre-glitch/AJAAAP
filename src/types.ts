@@ -31,6 +31,7 @@ export interface Appointment {
   attendanceStartAt?: number;
   attendanceEndAt?: number;
   rescheduleCount: number;
+  checkinMethod?: CheckinMethod;
   doctorCedula?: string;
   doctorName?: string;
   doctorSpecialty?: string;
