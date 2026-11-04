@@ -1,38 +1,3 @@
-/*
-# Create notifications and specialties tables
-
-## 1. New Tables
-
-### notifications
-- Stores real-time notifications sent to doctors when appointments are scheduled.
-- `id` (uuid, primary key)
-- `doctor_cedula` (text, FK to users.cedula) — the doctor who receives the notification
-- `appointment_id` (uuid, FK to appointments.id, nullable) — the related appointment
-- `message` (text) — the notification message text
-- `patient_name` (text) — patient name for quick display
-- `scheduled_date` (text) — appointment date
-- `scheduled_time` (text) — appointment time
-- `is_read` (boolean, default false) — whether the doctor has read it
-- `created_at` (timestamptz, default now())
-
-### specialties
-- Stores medical specialties that can be dynamically created by admins.
-- `id` (uuid, primary key)
-- `name` (text, unique, not null) — the specialty name
-- `created_at` (timestamptz, default now())
-
-## 2. Seed Data
-- Inserts the 4 default specialties that were previously hardcoded:
-  'Médico General', 'Médico Especialista', 'Laboratorio - Ejecución', 'Laboratorio - Entrega de Resultados'
-
-## 3. Security (RLS)
-- Both tables use `TO anon, authenticated` policies (no Supabase Auth — the app uses cedula-based login).
-- All CRUD operations allowed for anon + authenticated since the app manages access control in the frontend by role.
-*/
-
--- ============================================================
--- notifications table
--- ============================================================
 CREATE TABLE IF NOT EXISTS notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   doctor_cedula text NOT NULL REFERENCES users(cedula) ON DELETE CASCADE,
