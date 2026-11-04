@@ -13,6 +13,7 @@ import {
   CreditCard,
   Bell,
   Timer,
+  DoorClosed,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -21,6 +22,7 @@ import { SedeDistance } from '@/components/patient/SedeDistance';
 import { useNow, formatCountdown } from '@/hooks/useNow';
 import { COUNTDOWN_SECONDS } from '@/types';
 import { CheckInByCode } from '@/components/patient/CheckInByCode';
+import { useCheckinActive } from '@/hooks/useCheckinActive';
 import type { User as AppUser, Appointment } from '@/types';
 
 interface MyAppointmentsProps {
@@ -58,6 +60,7 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
     data.sede.allowSameDayBooking,
   );
   const now = useNow(1000);
+  const { active: checkinActive } = useCheckinActive();
   const [checkInBusy, setCheckInBusy] = useState(false);
   const [formError, setFormError] = useState('');
   const [showCheckInForm, setShowCheckInForm] = useState(false);
@@ -197,7 +200,14 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
       {/* Check-in section — visible when patient has a scheduled appointment and hasn't checked in */}
       {scheduledAppts.some((a) => a.status === 'scheduled') && (
         <>
-        {data.sede.checkinMethod === 'gps' && (
+        {!checkinActive && (
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center animate-slide-up space-y-2">
+            <DoorClosed className="w-10 h-10 text-slate-300 mx-auto" />
+            <p className="font-semibold text-slate-700">Recepción Cerrada / Fuera de Servicio</p>
+            <p className="text-sm text-slate-500">El check-in no está disponible en este momento. Acércate a secretaría.</p>
+          </div>
+        )}
+        {checkinActive && data.sede.checkinMethod === 'gps' && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 animate-slide-up space-y-4">
           <h2 className="font-semibold text-slate-800 flex items-center gap-2">
             <MapPin className="w-5 h-5 text-blue-700" />
@@ -292,7 +302,7 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
         )}
 
         {/* Check-in por código rotatorio — visible cuando el método es 'code' */}
-        {data.sede.checkinMethod === 'code' && (
+        {checkinActive && data.sede.checkinMethod === 'code' && (
           <CheckInByCode user={user} onCheckedIn={onCheckedIn} />
         )}
         </>
